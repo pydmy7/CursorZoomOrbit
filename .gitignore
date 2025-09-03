@@ -1,0 +1,13 @@
+.vs/
+.vscode/
+.idea/
+*.sln
+.vsconfig
+
+.cache/
+compile_commands.json
+
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
