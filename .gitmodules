@@ -1,0 +1,3 @@
+[submodule "Plugins/UnrealImGui"]
+	path = Plugins/UnrealImGui
+	url = https://github.com/IDI-Systems/UnrealImGui.git
