@@ -10,6 +10,7 @@
 
 #include "GameFramework/PlayerController.h"
 #include "Engine/LocalPlayer.h"
+#include "Kismet/GameplayStatics.h"
 
 ACursorZoomOrbitCamera::ACursorZoomOrbitCamera()
 {
@@ -143,14 +144,77 @@ void ACursorZoomOrbitCamera::OnMouseY(const FInputActionValue& Value)
 
 void ACursorZoomOrbitCamera::OnMouseWheel(const FInputActionValue& Value)
 {
-    float MinZoom = 150.f;
-    float MaxZoom = 6000.f;
-    float ZoomSpeed = 200.f;
+    if (!SpringArm || !Camera || !Pivot) {
+        return;
+    }
 
-    const float W = Value.Get<float>();
-    float NewLen = SpringArm->TargetArmLength - W * ZoomSpeed;
-    NewLen = FMath::Clamp(NewLen, MinZoom, MaxZoom);
-    SpringArm->TargetArmLength = NewLen;
+    APlayerController* PC = nullptr;
+    if (APawn* AsPawn = Cast<APawn>(this)) {
+        PC = Cast<APlayerController>(AsPawn->GetController());
+    }
+    if (!PC) {
+        PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+    }
+    if (!PC) {
+        return;
+    }
+
+    const float MinZoom = 150.f;
+    const float MaxZoom = 6000.f;
+    const float ZoomSpeed = 200.f;
+
+    const float W  = Value.Get<float>();
+    const float L0 = SpringArm->TargetArmLength;
+    float L1 = FMath::Clamp(L0 - W * ZoomSpeed, MinZoom, MaxZoom);
+    const float f = (L0 > KINDA_SMALL_NUMBER) ? (L1 / L0) : 1.f;
+
+    if (FMath::IsNearlyEqual(f, 1.f)) {
+        return;
+    }
+
+    float MouseX = 0.f, MouseY = 0.f;
+    if (!PC->GetMousePosition(MouseX, MouseY)) {
+        SpringArm->TargetArmLength = L1;
+        return;
+    }
+
+    FVector RayOrigin, RayDir;
+    if (!UGameplayStatics::DeprojectScreenToWorld(PC, FVector2D(MouseX, MouseY), RayOrigin, RayDir)) {
+        SpringArm->TargetArmLength = L1;
+        return;
+    }
+
+    FVector Anchor = FVector::ZeroVector;
+    {
+        FHitResult Hit;
+        const float TraceDist = 100000.f;
+        const FVector TraceEnd = RayOrigin + RayDir * TraceDist;
+
+        FCollisionQueryParams Params(SCENE_QUERY_STAT(ZoomTrace), true, this);
+        const bool bHit = GetWorld()->LineTraceSingleByChannel(
+            Hit, RayOrigin, TraceEnd, ECC_Visibility, Params
+        );
+
+        if (bHit) {
+            Anchor = Hit.ImpactPoint;
+        } else {
+            const FVector P = Pivot->GetComponentLocation();
+            float t = FVector::DotProduct(P - RayOrigin, RayDir);
+            if (t < 0.f) {
+                t = 0.f;
+            }
+            Anchor = RayOrigin + RayDir * t;
+        }
+    }
+
+    const FVector C0 = Camera->GetComponentLocation();
+    const FVector Fwd = Camera->GetForwardVector();
+
+    const FVector DeltaC = (1.f - f) * (Anchor - C0);
+    const FVector DeltaP = DeltaC + Fwd * (L1 - L0);
+
+    Pivot->AddWorldOffset(DeltaP, false);
+    SpringArm->TargetArmLength = L1;
 }
 
 void ACursorZoomOrbitCamera::OnReset(const FInputActionValue& /*Value*/)
@@ -178,7 +242,7 @@ void ACursorZoomOrbitCamera::ApplyOrbit(float DeltaX, float DeltaY)
 
 void ACursorZoomOrbitCamera::ApplyPan(float DeltaX, float DeltaY)
 {
-    float PanSpeed = 0.8f;
+    float PanSpeed = 0.0f;
     const FVector Right = Camera->GetRightVector();
     const FVector Up = Camera->GetUpVector();
     const float PanScale = PanSpeed * (SpringArm->TargetArmLength / 800.f);
