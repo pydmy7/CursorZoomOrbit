@@ -30,10 +30,7 @@ protected:
     TObjectPtr<UInputMappingContext> IMC_Camera = nullptr;
 
     UPROPERTY(EditDefaultsOnly, Category="Input")
-    TObjectPtr<UInputAction> IA_MouseX = nullptr;
-
-    UPROPERTY(EditDefaultsOnly, Category="Input")
-    TObjectPtr<UInputAction> IA_MouseY = nullptr;
+    TObjectPtr<UInputAction> IA_MouseXY = nullptr;
 
     UPROPERTY(EditDefaultsOnly, Category="Input")
     TObjectPtr<UInputAction> IA_MouseWheel = nullptr;
@@ -67,8 +64,7 @@ private:
     void OnMMBStarted(const FInputActionValue& Value);
     void OnMMBCompleted(const FInputActionValue& Value);
 
-    void OnMouseX(const FInputActionValue& Value);
-    void OnMouseY(const FInputActionValue& Value);
+    void OnMouseXY(const FInputActionValue& Value);
     void OnMouseWheel(const FInputActionValue& Value);
     void OnReset(const FInputActionValue& Value);
 

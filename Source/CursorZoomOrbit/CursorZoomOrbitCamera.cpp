@@ -94,13 +94,9 @@ void ACursorZoomOrbitCamera::SetupPlayerInputComponent(UInputComponent* PlayerIn
             EIC->BindAction(IA_MMB, ETriggerEvent::Completed, this, &ACursorZoomOrbitCamera::OnMMBCompleted);
             EIC->BindAction(IA_MMB, ETriggerEvent::Canceled,  this, &ACursorZoomOrbitCamera::OnMMBCompleted);
         }
-        if (IA_MouseX)
+        if (IA_MouseXY)
         {
-            EIC->BindAction(IA_MouseX, ETriggerEvent::Triggered, this, &ACursorZoomOrbitCamera::OnMouseX);
-        }
-        if (IA_MouseY)
-        {
-            EIC->BindAction(IA_MouseY, ETriggerEvent::Triggered, this, &ACursorZoomOrbitCamera::OnMouseY);
+            EIC->BindAction(IA_MouseXY, ETriggerEvent::Triggered, this, &ACursorZoomOrbitCamera::OnMouseXY);
         }
         if (IA_MouseWheel)
         {
@@ -131,29 +127,14 @@ void ACursorZoomOrbitCamera::OnMMBCompleted(const FInputActionValue& /*Value*/)
     bPanning = false;
 }
 
-void ACursorZoomOrbitCamera::OnMouseX(const FInputActionValue& Value)
-{
-    const float DX = Value.Get<float>();
-    if (bOrbiting)
-    {
-        ApplyOrbit(DX, 0.f);
-    }
-    else if (bPanning)
-    {
-        ApplyPan(DX, 0.f);
-    }
-}
+void ACursorZoomOrbitCamera::OnMouseXY(const FInputActionValue& Value) {
+    const float DX = Value.Get<FVector2D>().X;
+    const float DY = Value.Get<FVector2D>().Y;
 
-void ACursorZoomOrbitCamera::OnMouseY(const FInputActionValue& Value)
-{
-    const float DY = Value.Get<float>();
-    if (bOrbiting)
-    {
-        ApplyOrbit(0.f, DY);
-    }
-    else if (bPanning)
-    {
-        ApplyPan(0.f, DY);
+    if (bOrbiting) {
+        ApplyOrbit(DX, DY);
+    } else if (bPanning) {
+        ApplyPan(DX, DY);
     }
 }
 
