@@ -12,9 +12,13 @@
 #include "Engine/LocalPlayer.h"
 #include "Kismet/GameplayStatics.h"
 
+#include <imgui.h>
+#include <implot.h>
+#include <ImGuiModule.h>
+
 ACursorZoomOrbitCamera::ACursorZoomOrbitCamera()
 {
-    PrimaryActorTick.bCanEverTick = false;
+    PrimaryActorTick.bCanEverTick = true;
 
     Pivot = CreateDefaultSubobject<USceneComponent>(TEXT("Pivot"));
 
@@ -31,6 +35,10 @@ ACursorZoomOrbitCamera::ACursorZoomOrbitCamera()
     Camera->SetupAttachment(SpringArm);
 
     RootComponent = Pivot;
+
+    FImGuiModule::Get().GetProperties().SetInputEnabled(true);
+    FImGuiModule::Get().GetProperties().SetMouseInputShared(true);
+    FImGuiModule::Get().GetProperties().SetKeyboardInputShared(true);
 }
 
 void ACursorZoomOrbitCamera::BeginPlay()
@@ -59,6 +67,13 @@ void ACursorZoomOrbitCamera::BeginPlay()
             }
         }
     }
+}
+
+void ACursorZoomOrbitCamera::Tick(float DeltaTime) {
+	Super::Tick(DeltaTime);
+
+    ImGui::ShowDemoWindow();
+    ImPlot::ShowDemoWindow();
 }
 
 void ACursorZoomOrbitCamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
