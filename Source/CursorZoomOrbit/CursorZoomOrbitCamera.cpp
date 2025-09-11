@@ -16,6 +16,9 @@
 #include <imgui.h>
 #include <implot.h>
 
+#include <ImGuiFileDialog.h>
+#include <ImGuiFileDialogConfig.h>
+
 ACursorZoomOrbitCamera::ACursorZoomOrbitCamera()
 {
     PrimaryActorTick.bCanEverTick = true;
@@ -69,11 +72,33 @@ void ACursorZoomOrbitCamera::BeginPlay()
     }
 }
 
+void drawGui() {
+  // open Dialog Simple
+  if (ImGui::Button("Open File Dialog")) {
+    IGFD::FileDialogConfig config;
+	config.path = ".";
+    ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".cpp,.h,.hpp", config);
+  }
+  // display
+  if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
+    if (ImGuiFileDialog::Instance()->IsOk()) { // action if OK
+      std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+      std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+      // action
+    }
+
+    // close
+    ImGuiFileDialog::Instance()->Close();
+  }
+}
+
 void ACursorZoomOrbitCamera::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
     ImGui::ShowDemoWindow();
     ImPlot::ShowDemoWindow();
+
+    drawGui();
 }
 
 void ACursorZoomOrbitCamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

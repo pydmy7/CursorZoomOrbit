@@ -1,3 +1,4 @@
 [submodule "Plugins/UnrealImGui"]
 	path = Plugins/UnrealImGui
 	url = https://github.com/pydmy7/UnrealImGui.git
+    branch = master
