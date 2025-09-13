@@ -1,6 +1,7 @@
 #include "CursorZoomOrbitCamera.h"
 
 #include "Camera/CameraComponent.h"
+#include "Engine/World.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/SceneComponent.h"
 
@@ -15,7 +16,6 @@
 #include <ImGuiModule.h>
 #include <imgui.h>
 #include <implot.h>
-
 #include <ImGuiFileDialog.h>
 #include <ImGuiFileDialogConfig.h>
 
@@ -72,33 +72,8 @@ void ACursorZoomOrbitCamera::BeginPlay()
     }
 }
 
-void drawGui() {
-  // open Dialog Simple
-  if (ImGui::Button("Open File Dialog")) {
-    IGFD::FileDialogConfig config;
-	config.path = ".";
-    ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".cpp,.h,.hpp", config);
-  }
-  // display
-  if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey")) {
-    if (ImGuiFileDialog::Instance()->IsOk()) { // action if OK
-      std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-      std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-      // action
-    }
-
-    // close
-    ImGuiFileDialog::Instance()->Close();
-  }
-}
-
 void ACursorZoomOrbitCamera::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
-
-    ImGui::ShowDemoWindow();
-    ImPlot::ShowDemoWindow();
-
-    drawGui();
 }
 
 void ACursorZoomOrbitCamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -138,6 +113,7 @@ void ACursorZoomOrbitCamera::OnLMBStarted(const FInputActionValue& /*Value*/)
 {
     bOrbiting = true;
 }
+
 void ACursorZoomOrbitCamera::OnLMBCompleted(const FInputActionValue& /*Value*/)
 {
     bOrbiting = false;
@@ -147,6 +123,7 @@ void ACursorZoomOrbitCamera::OnMMBStarted(const FInputActionValue& /*Value*/)
 {
     bPanning = true;
 }
+
 void ACursorZoomOrbitCamera::OnMMBCompleted(const FInputActionValue& /*Value*/)
 {
     bPanning = false;
@@ -263,7 +240,7 @@ void ACursorZoomOrbitCamera::ApplyOrbit(float DeltaX, float DeltaY)
 
 void ACursorZoomOrbitCamera::ApplyPan(float DeltaX, float DeltaY)
 {
-    float PanSpeed = 0.0f;
+    float PanSpeed = 7.0f;
     const FVector Right = Camera->GetRightVector();
     const FVector Up = Camera->GetUpVector();
     const float PanScale = PanSpeed * (SpringArm->TargetArmLength / 800.f);
