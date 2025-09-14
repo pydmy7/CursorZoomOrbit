@@ -4,6 +4,8 @@
 *.sln
 .vsconfig
 
+*.uproject.DotSettings.user
+
 .cache/
 compile_commands.json
 
