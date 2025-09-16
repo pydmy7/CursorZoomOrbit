@@ -13,12 +13,6 @@
 #include "Engine/LocalPlayer.h"
 #include "Kismet/GameplayStatics.h"
 
-#include <ImGuiModule.h>
-#include <imgui.h>
-#include <implot.h>
-#include <ImGuiFileDialog.h>
-#include <ImGuiFileDialogConfig.h>
-
 ACursorZoomOrbitCamera::ACursorZoomOrbitCamera()
 {
     PrimaryActorTick.bCanEverTick = true;
@@ -38,10 +32,6 @@ ACursorZoomOrbitCamera::ACursorZoomOrbitCamera()
     Camera->SetupAttachment(SpringArm);
 
     RootComponent = Pivot;
-
-    FImGuiModule::Get().GetProperties().SetInputEnabled(true);
-    FImGuiModule::Get().GetProperties().SetMouseInputShared(true);
-    FImGuiModule::Get().GetProperties().SetKeyboardInputShared(true);
 }
 
 void ACursorZoomOrbitCamera::BeginPlay()

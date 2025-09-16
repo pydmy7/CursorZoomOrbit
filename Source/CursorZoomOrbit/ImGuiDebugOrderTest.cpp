@@ -2,6 +2,11 @@
 
 #include <Runtime/Engine/Public/EngineUtils.h>
 
+#include <ImGuiModule.h>
+#include <imgui.h>
+#include <implot.h>
+#include <ImGuiFileDialog.h>
+#include <ImGuiFileDialogConfig.h>
 
 FImGuiDelegateHandle AImGuiDebugOrderTest::ImGuiMultiContextTickHandle;
 
@@ -20,6 +25,10 @@ AImGuiDebugOrderTest::AImGuiDebugOrderTest()
 		ImGuiMultiContextTickHandle = FImGuiModule::Get().AddMultiContextImGuiDelegate(FImGuiDelegate::CreateStatic(&AImGuiDebugOrderTest::ImGuiMultiContextTick));
 	}
 #endif // WITH_IMGUI
+
+    FImGuiModule::Get().GetProperties().SetInputEnabled(true);
+    FImGuiModule::Get().GetProperties().SetMouseInputShared(true);
+    FImGuiModule::Get().GetProperties().SetKeyboardInputShared(true);
 }
 
 void AImGuiDebugOrderTest::BeginDestroy()
