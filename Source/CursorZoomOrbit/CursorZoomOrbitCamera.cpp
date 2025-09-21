@@ -1,17 +1,25 @@
 #include "CursorZoomOrbitCamera.h"
 
 #include "Camera/CameraComponent.h"
-#include "Engine/World.h"
-#include "GameFramework/SpringArmComponent.h"
 #include "Components/SceneComponent.h"
-
+#include "Components/StaticMeshComponent.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/LocalPlayer.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/World.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "InputActionValue.h"
-
 #include "GameFramework/PlayerController.h"
-#include "Engine/LocalPlayer.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "InputActionValue.h"
 #include "Kismet/GameplayStatics.h"
+#include "SceneView.h"
+#include "UnrealClient.h"
+
+#include <imgui.h>
+
+#include <imoguizmo.hpp>
 
 ACursorZoomOrbitCamera::ACursorZoomOrbitCamera()
 {
@@ -64,6 +72,21 @@ void ACursorZoomOrbitCamera::BeginPlay()
 
 void ACursorZoomOrbitCamera::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::Begin("Info");
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+    ImGui::Text("Mouse Position: [%.0f,%.0f]", io.MousePos.x, io.MousePos.y);
+
+    ImGui::Text("We're inside: %ls", *GetName());
+    FVector CameraPos = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetCameraLocation();
+    ImGui::Text("Camera Position: %.2f %.2f %.2f", CameraPos.X, CameraPos.Y, CameraPos.Z);
+
+    ImGui::End();
+
+    this->ActorDebugger();
+
+    CoordinateSystemViewGizmo(DeltaTime);
 }
 
 void ACursorZoomOrbitCamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -240,3 +263,114 @@ void ACursorZoomOrbitCamera::ApplyPan(float DeltaX, float DeltaY)
 
     Pivot->AddWorldOffset(Offset, false);
 }
+
+void ACursorZoomOrbitCamera::ActorDebugger()
+{
+	static bool bIsPickingActor = false;
+	static TWeakObjectPtr<AActor> PickedActor = nullptr;
+
+	ImGui::Begin("Actor Debugger");
+
+	if(ImGui::Button(bIsPickingActor ? "Stop Picking" : "Start Picking")) {
+		bIsPickingActor = !bIsPickingActor;
+	}
+
+	UWorld* World = GEngine->GetWorldFromContextObject(this, EGetWorldErrorMode::LogAndReturnNull);
+	ULocalPlayer* LP = World ? World->GetFirstLocalPlayerFromController() : nullptr;
+	if(bIsPickingActor) {
+		if (LP && LP->ViewportClient) {
+			// get the projection data
+			FSceneViewProjectionData ProjectionData;
+			if (LP->GetProjectionData(LP->ViewportClient->Viewport, ProjectionData)) {
+				FMatrix const InvViewProjMatrix = ProjectionData.ComputeViewProjectionMatrix().InverseFast();
+				ImVec2 ScreenPosImGui = ImGui::GetMousePos();
+				FVector2D ScreenPos = {ScreenPosImGui.x, ScreenPosImGui.y};
+				FVector WorldPosition, WorldDirection;
+				FSceneView::DeprojectScreenToWorld(ScreenPos, ProjectionData.GetConstrainedViewRect(), InvViewProjMatrix, WorldPosition, WorldDirection);
+
+				FCollisionQueryParams Params("DevGuiActorPickerTrace", SCENE_QUERY_STAT_ONLY(UDevGuiSubsystem), true);
+				Params.bReturnPhysicalMaterial = false;
+				Params.bReturnFaceIndex = false;
+
+				FCollisionObjectQueryParams ObjectParams(
+					ECC_TO_BITFIELD(ECC_WorldStatic)
+					| ECC_TO_BITFIELD(ECC_WorldDynamic)
+					| ECC_TO_BITFIELD(ECC_Pawn)
+					| ECC_TO_BITFIELD(ECC_PhysicsBody));
+
+				PickedActor = nullptr;
+				FHitResult OutHit;
+				if(World->LineTraceSingleByObjectType(
+						OutHit,
+						WorldPosition + WorldDirection * 100.0,
+						WorldPosition + WorldDirection * 10000.0,
+						ObjectParams,
+						Params))
+				{
+					PickedActor = OutHit.GetActor();
+				}
+			}
+		}
+
+		if(ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+			bIsPickingActor = false;
+		}
+	}
+
+	if(AActor* Actor = PickedActor.Get()) {
+		// ImGui::BeginChild("PickedActorFrame", ImVec2(), true);
+		ImGui::Text("Picked Actor: %ls", *Actor->GetName());
+
+		Actor->ForEachComponent<UStaticMeshComponent>(true, [](UStaticMeshComponent* Mesh) {
+			auto NameANSI = StringCast<ANSICHAR>(*Mesh->GetName());
+			if(ImGui::CollapsingHeader(NameANSI.Get(), ImGuiTreeNodeFlags_DefaultOpen)) {
+				if(auto StaticMesh = Mesh->GetStaticMesh()) {
+					ImGui::Text("Mesh name: %ls", *StaticMesh->GetName());
+					ImGui::Text("Nanite Enabled: %s", StaticMesh->NaniteSettings.bEnabled ? "true" : "false");
+				}
+
+				// ImGui::PushID(NameANSI.Get());
+				if(Mesh->IsSimulatingPhysics()) {
+					FString ButtonLabel = FString::Printf(TEXT("Add Vertical Force##%s"), NameANSI.Get());
+					if(ImGui::Button(TCHAR_TO_UTF8(*ButtonLabel))) {
+						Mesh->AddForce(FVector{0.0, 0.0, 50000.0}, NAME_None, true);
+					}
+				}
+				// ImGui::PopID();
+			}
+		});
+
+		// ImGui::EndChild();
+	} else {
+		PickedActor = nullptr;
+	}
+
+	ImGui::End();
+}
+
+void ACursorZoomOrbitCamera::CoordinateSystemViewGizmo(float DeltaTime)
+{
+    FMinimalViewInfo DesiredView;
+    Camera->GetCameraView(DeltaTime, DesiredView);
+
+    FMatrix ViewMatrix = FMatrix::Identity;
+    FMatrix ProjectionMatrix = FMatrix::Identity;
+    FMatrix ViewProjectionMatrix = FMatrix::Identity;
+    UGameplayStatics::GetViewProjectionMatrix(DesiredView, ViewMatrix, ProjectionMatrix, ViewProjectionMatrix);
+
+    static float ViewMatrixArray[16];
+    static float ProjectionMatrixArray[16];
+    for (int row = 0; row < 4; row++) {
+        for (int col = 0; col < 4; col++) {
+            ViewMatrixArray[row * 4 + col] = ViewMatrix.M[row][col];
+            ProjectionMatrixArray[row * 4 + col] = ProjectionMatrix.M[row][col];
+        }
+    }
+
+    FIntPoint Size = GEngine->GameViewport->Viewport->GetSizeXY();
+    ImOGuizmo::SetRect(Size.X - 120, Size.Y - 120, 120);
+    ImOGuizmo::BeginFrame();
+
+    ImOGuizmo::DrawGizmo(ViewMatrixArray, ProjectionMatrixArray, 1);
+}
+

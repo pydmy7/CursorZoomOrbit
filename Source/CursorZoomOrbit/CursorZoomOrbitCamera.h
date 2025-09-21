@@ -70,4 +70,8 @@ private:
 
     void ApplyOrbit(float DeltaX, float DeltaY);
     void ApplyPan(float DeltaX, float DeltaY);
+
+    void ActorDebugger();
+    void CoordinateSystemViewGizmo(float DeltaTime);
 };
+
