@@ -18,8 +18,10 @@
 #include "UnrealClient.h"
 
 #include <imgui.h>
-
 #include <imoguizmo.hpp>
+#include <ImGuizmo.h>
+
+#include <array>
 
 ACursorZoomOrbitCamera::ACursorZoomOrbitCamera()
 {
@@ -84,7 +86,7 @@ void ACursorZoomOrbitCamera::Tick(float DeltaTime) {
 
     ImGui::End();
 
-    this->ActorDebugger();
+    ActorDebugger();
 
     CoordinateSystemViewGizmo(DeltaTime);
 }
@@ -372,5 +374,28 @@ void ACursorZoomOrbitCamera::CoordinateSystemViewGizmo(float DeltaTime)
     ImOGuizmo::BeginFrame();
 
     ImOGuizmo::DrawGizmo(ViewMatrixArray, ProjectionMatrixArray, 1);
-}
 
+
+    std::array<float, 16> matrix = {
+        100.f, 0.f, 0.f, 0.f,
+        0.f, 100.f, 0.f, 0.f,
+        0.f, 0.f, 100.f, 0.f,
+        0.f, 0.f, 0.f, 100.f
+    };
+    static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
+    // static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
+    // static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::SCALE);
+    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+    // static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
+
+
+    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::BeginFrame();
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+    // ProjectionMatrixArray[2][2] = -FLT_EPSILON;
+    ProjectionMatrixArray[2 * 4 + 2] = -FLT_EPSILON;
+    ImGuizmo::Manipulate(ViewMatrixArray, ProjectionMatrixArray, mCurrentGizmoOperation, mCurrentGizmoMode, matrix.data(), nullptr, nullptr, nullptr, nullptr);
+}
