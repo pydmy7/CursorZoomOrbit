@@ -164,20 +164,7 @@ void TransformStart(float* cameraView, float* cameraProjection, float* matrix)
             mCurrentGizmoMode = ImGuizmo::WORLD;
     }
 
-    ImGuiIO& io = ImGui::GetIO();
-    float viewManipulateRight = io.DisplaySize.x;
-    float viewManipulateTop = 0;
-    static ImGuiWindowFlags gizmoWindowFlags = 0;
-    ImGui::SetNextWindowSize(ImVec2(800, 400), ImGuiCond_Appearing);
-    ImGui::SetNextWindowPos(ImVec2(400, 20), ImGuiCond_Appearing);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, (ImVec4)ImColor(0.35f, 0.3f, 0.3f));
-    float windowWidth = (float)ImGui::GetWindowWidth();
-    float windowHeight = (float)ImGui::GetWindowHeight();
-
-    viewManipulateRight = ImGui::GetWindowPos().x + windowWidth;
-    viewManipulateTop = ImGui::GetWindowPos().y;
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    gizmoWindowFlags = ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(window->InnerRect.Min, window->InnerRect.Max) ? ImGuiWindowFlags_NoMove : 0;
 
     ImGuizmo::DrawGrid(cameraView, cameraProjection, identityMatrix, 100.f);
     ImGuizmo::DrawCubes(cameraView, cameraProjection, objectMatrix, 1);
