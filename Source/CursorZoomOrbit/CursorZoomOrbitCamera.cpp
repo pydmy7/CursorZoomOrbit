@@ -18,6 +18,7 @@
 #include "UnrealClient.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <imoguizmo.hpp>
 #include <ImGuizmo.h>
 
@@ -376,26 +377,55 @@ void ACursorZoomOrbitCamera::CoordinateSystemViewGizmo(float DeltaTime)
     ImOGuizmo::DrawGizmo(ViewMatrixArray, ProjectionMatrixArray, 1);
 
 
-    std::array<float, 16> matrix = {
+    static std::array<float, 16> matrix = {
         100.f, 0.f, 0.f, 0.f,
         0.f, 100.f, 0.f, 0.f,
         0.f, 0.f, 100.f, 0.f,
         0.f, 0.f, 0.f, 100.f
     };
     static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
-    // static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
-    // static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::SCALE);
     static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
-    // static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
-
 
     ImGuizmo::SetOrthographic(false);
     ImGuizmo::BeginFrame();
 
     ImGuiIO& io = ImGui::GetIO();
-    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
 
     // ProjectionMatrixArray[2][2] = -FLT_EPSILON;
-    ProjectionMatrixArray[2 * 4 + 2] = -FLT_EPSILON;
-    ImGuizmo::Manipulate(ViewMatrixArray, ProjectionMatrixArray, mCurrentGizmoOperation, mCurrentGizmoMode, matrix.data(), nullptr, nullptr, nullptr, nullptr);
+    // ProjectionMatrixArray[2 * 4 + 2] = -FLT_EPSILON;
+
+    {
+        ImGui::Begin("Editor");
+        ImGuizmo::BeginFrame();
+        ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+        if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
+            mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE))
+            mCurrentGizmoOperation = ImGuizmo::ROTATE;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Scale", mCurrentGizmoOperation == ImGuizmo::SCALE))
+            mCurrentGizmoOperation = ImGuizmo::SCALE;
+
+        float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+        ImGuizmo::DecomposeMatrixToComponents(matrix.data(), matrixTranslation, matrixRotation, matrixScale);
+        ImGui::InputFloat3("Tr", matrixTranslation);
+        ImGui::InputFloat3("Rt", matrixRotation);
+        ImGui::InputFloat3("Sc", matrixScale);
+        ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix.data());
+
+        if (mCurrentGizmoOperation != ImGuizmo::SCALE) {
+            if (ImGui::RadioButton("Local", mCurrentGizmoMode == ImGuizmo::LOCAL))
+                mCurrentGizmoMode = ImGuizmo::LOCAL;
+            ImGui::SameLine();
+            if (ImGui::RadioButton("World", mCurrentGizmoMode == ImGuizmo::WORLD))
+                mCurrentGizmoMode = ImGuizmo::WORLD;
+        }
+
+        ImGuizmo::DrawCubes(ViewMatrixArray, ProjectionMatrixArray, matrix.data(), 1);
+        ImGuizmo::Manipulate(ViewMatrixArray, ProjectionMatrixArray, mCurrentGizmoOperation, mCurrentGizmoMode, matrix.data(), nullptr, nullptr);
+
+        ImGui::End();
+    }
 }
