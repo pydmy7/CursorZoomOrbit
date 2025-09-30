@@ -26,13 +26,16 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "imgui_internal.h"
+
 #define IMAPP_IMPL
 #include "ImApp.h"
 
 #include "ImGuizmo.h"
+
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#include <iostream>
 
 float camDistance = 8.f;
 static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
@@ -138,8 +141,9 @@ void LookAt(const float* eye, const float* at, const float* up, float* m16)
     m16[15] = 1.0f;
 }
 
-void TransformStart(float* cameraView, float* cameraProjection, float* matrix)
-{
+void zmo(const float* cameraView, const float* cameraProjection) {
+    ImGui::Begin("Editor");
+
     if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
         mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
     ImGui::SameLine();
@@ -150,11 +154,11 @@ void TransformStart(float* cameraView, float* cameraProjection, float* matrix)
         mCurrentGizmoOperation = ImGuizmo::SCALE;
 
     float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-    ImGuizmo::DecomposeMatrixToComponents(matrix, matrixTranslation, matrixRotation, matrixScale);
+    ImGuizmo::DecomposeMatrixToComponents(objectMatrix, matrixTranslation, matrixRotation, matrixScale);
     ImGui::InputFloat3("Tr", matrixTranslation);
     ImGui::InputFloat3("Rt", matrixRotation);
     ImGui::InputFloat3("Sc", matrixScale);
-    ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix);
+    ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, objectMatrix);
 
     if (mCurrentGizmoOperation != ImGuizmo::SCALE) {
         if (ImGui::RadioButton("Local", mCurrentGizmoMode == ImGuizmo::LOCAL))
@@ -164,36 +168,14 @@ void TransformStart(float* cameraView, float* cameraProjection, float* matrix)
             mCurrentGizmoMode = ImGuizmo::WORLD;
     }
 
+    ImGui::End();
+
     ImGuiIO& io = ImGui::GetIO();
-    float viewManipulateRight = io.DisplaySize.x;
-    float viewManipulateTop = 0;
-    static ImGuiWindowFlags gizmoWindowFlags = 0;
-    ImGui::SetNextWindowSize(ImVec2(800, 400), ImGuiCond_Appearing);
-    ImGui::SetNextWindowPos(ImVec2(400, 20), ImGuiCond_Appearing);
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, (ImVec4)ImColor(0.35f, 0.3f, 0.3f));
-    float windowWidth = (float)ImGui::GetWindowWidth();
-    float windowHeight = (float)ImGui::GetWindowHeight();
-
-    viewManipulateRight = ImGui::GetWindowPos().x + windowWidth;
-    viewManipulateTop = ImGui::GetWindowPos().y;
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
-    gizmoWindowFlags = ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(window->InnerRect.Min, window->InnerRect.Max) ? ImGuiWindowFlags_NoMove : 0;
-
+    ImGuizmo::BeginFrame();
+    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
     ImGuizmo::DrawGrid(cameraView, cameraProjection, identityMatrix, 100.f);
     ImGuizmo::DrawCubes(cameraView, cameraProjection, objectMatrix, 1);
-}
-
-void TransformEnd()
-{
-    ImGui::PopStyleColor(1);
-}
-
-void EditTransform(float* cameraView, float* cameraProjection, float* matrix)
-{
-    ImGuiIO& io = ImGui::GetIO();
-    float windowWidth = (float)ImGui::GetWindowWidth();
-    float windowHeight = (float)ImGui::GetWindowHeight();
-    ImGuizmo::Manipulate(cameraView, cameraProjection, mCurrentGizmoOperation, mCurrentGizmoMode, matrix, nullptr, nullptr);
+    ImGuizmo::Manipulate(cameraView, cameraProjection, mCurrentGizmoOperation, mCurrentGizmoMode, objectMatrix, nullptr, nullptr);
 }
 
 int main(int, char**)
@@ -234,16 +216,9 @@ int main(int, char**)
     while (!imApp.Done()) {
         imApp.NewFrame();
         ImGuiIO& io = ImGui::GetIO();
-
         Perspective(27, io.DisplaySize.x / io.DisplaySize.y, 0.1f, 100.f, cameraProjection);
 
-        ImGui::Begin("Editor");
-        ImGuizmo::BeginFrame();
-        ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-        TransformStart(cameraView, cameraProjection, objectMatrix);
-        EditTransform(cameraView, cameraProjection, objectMatrix);
-        TransformEnd();
-        ImGui::End();
+        zmo(cameraView, cameraProjection);
 
         // render everything
         glClearColor(0.45f, 0.4f, 0.4f, 1.f);
