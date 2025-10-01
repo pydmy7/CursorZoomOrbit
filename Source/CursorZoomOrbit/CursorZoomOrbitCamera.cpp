@@ -373,7 +373,6 @@ void ACursorZoomOrbitCamera::CoordinateSystemViewGizmo(float DeltaTime)
     FIntPoint Size = GEngine->GameViewport->Viewport->GetSizeXY();
     ImOGuizmo::SetRect(Size.X - 120, Size.Y - 120, 120);
     ImOGuizmo::BeginFrame();
-
     ImOGuizmo::DrawGizmo(ViewMatrixArray, ProjectionMatrixArray, 1);
 
 
@@ -392,12 +391,10 @@ void ACursorZoomOrbitCamera::CoordinateSystemViewGizmo(float DeltaTime)
     ImGuiIO& io = ImGui::GetIO();
 
     // ProjectionMatrixArray[2][2] = -FLT_EPSILON;
-    // ProjectionMatrixArray[2 * 4 + 2] = -FLT_EPSILON;
+    ProjectionMatrixArray[2 * 4 + 2] = -FLT_EPSILON;
 
     {
         ImGui::Begin("Editor");
-        ImGuizmo::BeginFrame();
-        ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
 
         if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
             mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
@@ -423,9 +420,12 @@ void ACursorZoomOrbitCamera::CoordinateSystemViewGizmo(float DeltaTime)
                 mCurrentGizmoMode = ImGuizmo::WORLD;
         }
 
+        ImGui::End();
+
+
+        ImGuizmo::BeginFrame();
+        ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
         ImGuizmo::DrawCubes(ViewMatrixArray, ProjectionMatrixArray, matrix.data(), 1);
         ImGuizmo::Manipulate(ViewMatrixArray, ProjectionMatrixArray, mCurrentGizmoOperation, mCurrentGizmoMode, matrix.data(), nullptr, nullptr);
-
-        ImGui::End();
     }
 }
