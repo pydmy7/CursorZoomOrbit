@@ -43,6 +43,8 @@ ACursorZoomOrbitCamera::ACursorZoomOrbitCamera()
     Camera->SetupAttachment(SpringArm);
 
     RootComponent = Pivot;
+
+    ImGuizmo::SetOrthographic(false);
 }
 
 void ACursorZoomOrbitCamera::BeginPlay()
@@ -53,19 +55,15 @@ void ACursorZoomOrbitCamera::BeginPlay()
     DefaultArmRot = SpringArm->GetRelativeRotation();
     DefaultPivotLoc = Pivot->GetComponentLocation();
 
-    if (APlayerController* PC = Cast<APlayerController>(GetController()))
-    {
+    if (APlayerController* PC = Cast<APlayerController>(GetController())) {
         PC->bShowMouseCursor = true;
         FInputModeGameOnly Mode;
         Mode.SetConsumeCaptureMouseDown(false);
         PC->SetInputMode(Mode);
 
-        if (ULocalPlayer* LP = PC->GetLocalPlayer())
-        {
-            if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LP))
-            {
-                if (IMC_Camera)
-                {
+        if (ULocalPlayer* LP = PC->GetLocalPlayer()) {
+            if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LP)) {
+                if (IMC_Camera) {
                     Subsystem->AddMappingContext(IMC_Camera, 0);
                 }
             }
@@ -73,75 +71,46 @@ void ACursorZoomOrbitCamera::BeginPlay()
     }
 }
 
-void ACursorZoomOrbitCamera::Tick(float DeltaTime) {
-	Super::Tick(DeltaTime);
-
-    ImGuiIO& io = ImGui::GetIO();
-    ImGui::Begin("Info");
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-    ImGui::Text("Mouse Position: [%.0f,%.0f]", io.MousePos.x, io.MousePos.y);
-
-    ImGui::Text("We're inside: %ls", *GetName());
-    FVector CameraPos = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetCameraLocation();
-    ImGui::Text("Camera Position: %.2f %.2f %.2f", CameraPos.X, CameraPos.Y, CameraPos.Z);
-
-    ImGui::End();
-
-    ActorDebugger();
-
-    CoordinateSystemViewGizmo(DeltaTime);
-}
-
 void ACursorZoomOrbitCamera::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-    if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent))
-    {
-        if (IA_LMB)
-        {
+    if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
+        if (IA_LMB) {
             EIC->BindAction(IA_LMB, ETriggerEvent::Started,   this, &ACursorZoomOrbitCamera::OnLMBStarted);
             EIC->BindAction(IA_LMB, ETriggerEvent::Completed, this, &ACursorZoomOrbitCamera::OnLMBCompleted);
             EIC->BindAction(IA_LMB, ETriggerEvent::Canceled,  this, &ACursorZoomOrbitCamera::OnLMBCompleted);
         }
-        if (IA_MMB)
-        {
+        if (IA_MMB) {
             EIC->BindAction(IA_MMB, ETriggerEvent::Started,   this, &ACursorZoomOrbitCamera::OnMMBStarted);
             EIC->BindAction(IA_MMB, ETriggerEvent::Completed, this, &ACursorZoomOrbitCamera::OnMMBCompleted);
             EIC->BindAction(IA_MMB, ETriggerEvent::Canceled,  this, &ACursorZoomOrbitCamera::OnMMBCompleted);
         }
-        if (IA_MouseXY)
-        {
+        if (IA_MouseXY) {
             EIC->BindAction(IA_MouseXY, ETriggerEvent::Triggered, this, &ACursorZoomOrbitCamera::OnMouseXY);
         }
-        if (IA_MouseWheel)
-        {
+        if (IA_MouseWheel) {
             EIC->BindAction(IA_MouseWheel, ETriggerEvent::Triggered, this, &ACursorZoomOrbitCamera::OnMouseWheel);
         }
-        if (IA_Reset)
-        {
+        if (IA_Reset) {
             EIC->BindAction(IA_Reset, ETriggerEvent::Triggered, this, &ACursorZoomOrbitCamera::OnReset);
         }
     }
 }
 
-void ACursorZoomOrbitCamera::OnLMBStarted(const FInputActionValue& /*Value*/)
-{
+void ACursorZoomOrbitCamera::OnLMBStarted(const FInputActionValue& /*Value*/) {
     bOrbiting = true;
 }
 
-void ACursorZoomOrbitCamera::OnLMBCompleted(const FInputActionValue& /*Value*/)
-{
+void ACursorZoomOrbitCamera::OnLMBCompleted(const FInputActionValue& /*Value*/) {
     bOrbiting = false;
 }
 
-void ACursorZoomOrbitCamera::OnMMBStarted(const FInputActionValue& /*Value*/)
-{
+void ACursorZoomOrbitCamera::OnMMBStarted(const FInputActionValue& /*Value*/) {
     bPanning = true;
 }
 
-void ACursorZoomOrbitCamera::OnMMBCompleted(const FInputActionValue& /*Value*/)
-{
+void ACursorZoomOrbitCamera::OnMMBCompleted(const FInputActionValue& /*Value*/) {
     bPanning = false;
 }
 
@@ -231,15 +200,13 @@ void ACursorZoomOrbitCamera::OnMouseWheel(const FInputActionValue& Value)
     SpringArm->TargetArmLength = L1;
 }
 
-void ACursorZoomOrbitCamera::OnReset(const FInputActionValue& /*Value*/)
-{
+void ACursorZoomOrbitCamera::OnReset(const FInputActionValue& /*Value*/) {
     SpringArm->TargetArmLength = DefaultArmLength;
     SpringArm->SetRelativeRotation(DefaultArmRot);
     Pivot->SetWorldLocation(DefaultPivotLoc);
 }
 
-void ACursorZoomOrbitCamera::ApplyOrbit(float DeltaX, float DeltaY)
-{
+void ACursorZoomOrbitCamera::ApplyOrbit(float DeltaX, float DeltaY) {
     float OrbitSpeed = 1.5f;
 
     constexpr float YSign = -1.f;
@@ -254,8 +221,7 @@ void ACursorZoomOrbitCamera::ApplyOrbit(float DeltaX, float DeltaY)
     SpringArm->SetRelativeRotation((dq * q).GetNormalized());
 }
 
-void ACursorZoomOrbitCamera::ApplyPan(float DeltaX, float DeltaY)
-{
+void ACursorZoomOrbitCamera::ApplyPan(float DeltaX, float DeltaY) {
     float PanSpeed = 7.0f;
     const FVector Right = Camera->GetRightVector();
     const FVector Up = Camera->GetUpVector();
@@ -267,8 +233,29 @@ void ACursorZoomOrbitCamera::ApplyPan(float DeltaX, float DeltaY)
     Pivot->AddWorldOffset(Offset, false);
 }
 
-void ACursorZoomOrbitCamera::ActorDebugger()
-{
+void ACursorZoomOrbitCamera::Tick(float DeltaTime) {
+	Super::Tick(DeltaTime);
+
+    ShowCurrentState();
+    ActorDebugger();
+    CoordinateSystemViewGizmo(DeltaTime);
+    ImGuiZmo(DeltaTime);
+}
+
+void ACursorZoomOrbitCamera::ShowCurrentState() {
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::Begin("Info");
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+    ImGui::Text("Mouse Position: [%.0f,%.0f]", io.MousePos.x, io.MousePos.y);
+
+    ImGui::Text("We're inside: %ls", *GetName());
+    FVector CameraPos = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetCameraLocation();
+    ImGui::Text("Camera Position: %.2f %.2f %.2f", CameraPos.X, CameraPos.Y, CameraPos.Z);
+
+    ImGui::End();
+}
+
+void ACursorZoomOrbitCamera::ActorDebugger() {
 	static bool bIsPickingActor = false;
 	static TWeakObjectPtr<AActor> PickedActor = nullptr;
 
@@ -344,6 +331,8 @@ void ACursorZoomOrbitCamera::ActorDebugger()
 		});
 
 		// ImGui::EndChild();
+
+        this->PickedActor1 = Actor;
 	} else {
 		PickedActor = nullptr;
 	}
@@ -351,8 +340,7 @@ void ACursorZoomOrbitCamera::ActorDebugger()
 	ImGui::End();
 }
 
-void ACursorZoomOrbitCamera::CoordinateSystemViewGizmo(float DeltaTime)
-{
+void ACursorZoomOrbitCamera::CoordinateSystemViewGizmo(float DeltaTime) {
     FMinimalViewInfo DesiredView;
     Camera->GetCameraView(DeltaTime, DesiredView);
 
@@ -363,8 +351,8 @@ void ACursorZoomOrbitCamera::CoordinateSystemViewGizmo(float DeltaTime)
 
     static float ViewMatrixArray[16];
     static float ProjectionMatrixArray[16];
-    for (int row = 0; row < 4; row++) {
-        for (int col = 0; col < 4; col++) {
+    for (auto row = 0; row < 4; ++row) {
+        for (auto col = 0; col < 4; ++col) {
             ViewMatrixArray[row * 4 + col] = ViewMatrix.M[row][col];
             ProjectionMatrixArray[row * 4 + col] = ProjectionMatrix.M[row][col];
         }
@@ -374,24 +362,35 @@ void ACursorZoomOrbitCamera::CoordinateSystemViewGizmo(float DeltaTime)
     ImOGuizmo::SetRect(Size.X - 120, Size.Y - 120, 120);
     ImOGuizmo::BeginFrame();
     ImOGuizmo::DrawGizmo(ViewMatrixArray, ProjectionMatrixArray, 1);
+}
 
+void ACursorZoomOrbitCamera::ImGuiZmo(float DeltaTime) {
+    if (!PickedActor1) {
+        return;
+    }
 
-    static std::array<float, 16> matrix = {
-        100.f, 0.f, 0.f, 0.f,
-        0.f, 100.f, 0.f, 0.f,
-        0.f, 0.f, 100.f, 0.f,
-        0.f, 0.f, 0.f, 100.f
-    };
-    static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
-    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+    FMinimalViewInfo DesiredView;
+    Camera->GetCameraView(DeltaTime, DesiredView);
 
-    ImGuizmo::SetOrthographic(false);
-    ImGuizmo::BeginFrame();
+    FMatrix ViewMatrix = FMatrix::Identity;
+    FMatrix ProjectionMatrix = FMatrix::Identity;
+    FMatrix ViewProjectionMatrix = FMatrix::Identity;
+    UGameplayStatics::GetViewProjectionMatrix(DesiredView, ViewMatrix, ProjectionMatrix, ViewProjectionMatrix);
 
-    ImGuiIO& io = ImGui::GetIO();
+    static float ViewMatrixArray[16];
+    static float ProjectionMatrixArray[16];
+    for (auto row = 0; row < 4; ++row) {
+        for (auto col = 0; col < 4; ++col) {
+            ViewMatrixArray[row * 4 + col] = ViewMatrix.M[row][col];
+            ProjectionMatrixArray[row * 4 + col] = ProjectionMatrix.M[row][col];
+        }
+    }
 
     // ProjectionMatrixArray[2][2] = -FLT_EPSILON;
     ProjectionMatrixArray[2 * 4 + 2] = -FLT_EPSILON;
+
+    static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
+    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
 
     {
         ImGui::Begin("Editor");
@@ -405,12 +404,30 @@ void ACursorZoomOrbitCamera::CoordinateSystemViewGizmo(float DeltaTime)
         if (ImGui::RadioButton("Scale", mCurrentGizmoOperation == ImGuizmo::SCALE))
             mCurrentGizmoOperation = ImGuizmo::SCALE;
 
-        float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-        ImGuizmo::DecomposeMatrixToComponents(matrix.data(), matrixTranslation, matrixRotation, matrixScale);
+
+        FTransform Transform = PickedActor1->GetActorTransform();
+        FVector Location = Transform.GetLocation();
+        FRotator Rotation = Transform.Rotator();
+        FVector Scale = Transform.GetScale3D();
+        float matrixTranslation[3] = {float(Location.X), float(Location.Y), float(Location.Z)};
+        float matrixRotation[3] = {float(Rotation.Pitch), float(Rotation.Yaw), float(Rotation.Roll)};
+        float matrixScale[3] = {float(Scale.X), float(Scale.Y), float(Scale.Z)};
+
         ImGui::InputFloat3("Tr", matrixTranslation);
         ImGui::InputFloat3("Rt", matrixRotation);
         ImGui::InputFloat3("Sc", matrixScale);
-        ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix.data());
+
+        Location.Set(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
+        Rotation.Pitch = matrixRotation[0];
+        Rotation.Yaw = matrixRotation[1];
+        Rotation.Roll = matrixRotation[2];
+        Scale.Set(matrixScale[0], matrixScale[1], matrixScale[2]);
+        Transform.SetLocation(Location);
+        Transform.SetRotation(Rotation.Quaternion());
+        Transform.SetScale3D(Scale);
+
+        PickedActor1->SetActorTransform(Transform);
+
 
         if (mCurrentGizmoOperation != ImGuizmo::SCALE) {
             if (ImGui::RadioButton("Local", mCurrentGizmoMode == ImGuizmo::LOCAL))
@@ -424,8 +441,26 @@ void ACursorZoomOrbitCamera::CoordinateSystemViewGizmo(float DeltaTime)
 
 
         ImGuizmo::BeginFrame();
+        ImGuiIO& io = ImGui::GetIO();
         ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+        std::array<float, 16> matrix;
+        ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix.data());
+
         ImGuizmo::DrawCubes(ViewMatrixArray, ProjectionMatrixArray, matrix.data(), 1);
         ImGuizmo::Manipulate(ViewMatrixArray, ProjectionMatrixArray, mCurrentGizmoOperation, mCurrentGizmoMode, matrix.data(), nullptr, nullptr);
+
+        if (ImGuizmo::IsUsing()) {
+            ImGuizmo::DecomposeMatrixToComponents(matrix.data(), matrixTranslation, matrixRotation, matrixScale);
+            Location.Set(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
+            Rotation.Pitch = matrixRotation[0];
+            Rotation.Yaw = matrixRotation[1];
+            Rotation.Roll = matrixRotation[2];
+            Scale.Set(matrixScale[0], matrixScale[1], matrixScale[2]);
+            Transform.SetLocation(Location);
+            Transform.SetRotation(Rotation.Quaternion());
+            Transform.SetScale3D(Scale);
+            PickedActor1->SetActorTransform(Transform);
+        }
     }
 }

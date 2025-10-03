@@ -3,7 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/Pawn.h"
+#include "UObject/ObjectPtr.h"
 #include "CursorZoomOrbitCamera.generated.h"
 
 class USceneComponent;
@@ -71,6 +73,10 @@ private:
     void ApplyOrbit(float DeltaX, float DeltaY);
     void ApplyPan(float DeltaX, float DeltaY);
 
+    void ShowCurrentState();
     void ActorDebugger();
     void CoordinateSystemViewGizmo(float DeltaTime);
+    void ImGuiZmo(float DeltaTime);
+
+    TObjectPtr<AActor> PickedActor1 = nullptr;
 };
