@@ -407,10 +407,11 @@ void ACursorZoomOrbitCamera::ImGuiZmo(float DeltaTime) {
 
         FTransform Transform = PickedActor1->GetActorTransform();
         FVector Location = Transform.GetLocation();
-        FRotator Rotation = Transform.Rotator();
+        FQuat Rotation = Transform.GetRotation();
+        FRotator Rotator = Rotation.Rotator();
         FVector Scale = Transform.GetScale3D();
         float matrixTranslation[3] = {float(Location.X), float(Location.Y), float(Location.Z)};
-        float matrixRotation[3] = {float(Rotation.Pitch), float(Rotation.Yaw), float(Rotation.Roll)};
+        float matrixRotation[3] = {float(Rotator.Pitch), float(Rotator.Yaw), float(Rotator.Roll)};
         float matrixScale[3] = {float(Scale.X), float(Scale.Y), float(Scale.Z)};
 
         ImGui::InputFloat3("Tr", matrixTranslation);
@@ -418,12 +419,12 @@ void ACursorZoomOrbitCamera::ImGuiZmo(float DeltaTime) {
         ImGui::InputFloat3("Sc", matrixScale);
 
         Location.Set(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
-        Rotation.Pitch = matrixRotation[0];
-        Rotation.Yaw = matrixRotation[1];
-        Rotation.Roll = matrixRotation[2];
+        Rotator.Pitch = matrixRotation[0];
+        Rotator.Yaw = matrixRotation[1];
+        Rotator.Roll = matrixRotation[2];
         Scale.Set(matrixScale[0], matrixScale[1], matrixScale[2]);
         Transform.SetLocation(Location);
-        Transform.SetRotation(Rotation.Quaternion());
+        Transform.SetRotation(Rotator.Quaternion());
         Transform.SetScale3D(Scale);
 
         PickedActor1->SetActorTransform(Transform);
@@ -441,25 +442,26 @@ void ACursorZoomOrbitCamera::ImGuiZmo(float DeltaTime) {
 
 
         ImGuizmo::BeginFrame();
-        ImGuiIO& io = ImGui::GetIO();
-        ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+        FIntPoint viewportSize = GEngine->GameViewport->Viewport->GetSizeXY();
+        ImGuizmo::SetRect(0, 0, viewportSize.X, viewportSize.Y);
 
         std::array<float, 16> matrix;
         ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix.data());
 
-        ImGuizmo::DrawCubes(ViewMatrixArray, ProjectionMatrixArray, matrix.data(), 1);
         ImGuizmo::Manipulate(ViewMatrixArray, ProjectionMatrixArray, mCurrentGizmoOperation, mCurrentGizmoMode, matrix.data(), nullptr, nullptr);
 
         if (ImGuizmo::IsUsing()) {
             ImGuizmo::DecomposeMatrixToComponents(matrix.data(), matrixTranslation, matrixRotation, matrixScale);
+
             Location.Set(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
-            Rotation.Pitch = matrixRotation[0];
-            Rotation.Yaw = matrixRotation[1];
-            Rotation.Roll = matrixRotation[2];
+            Rotator.Pitch = matrixRotation[0];
+            Rotator.Yaw = matrixRotation[1];
+            Rotator.Roll = matrixRotation[2];
             Scale.Set(matrixScale[0], matrixScale[1], matrixScale[2]);
             Transform.SetLocation(Location);
-            Transform.SetRotation(Rotation.Quaternion());
+            Transform.SetRotation(Rotator.Quaternion());
             Transform.SetScale3D(Scale);
+
             PickedActor1->SetActorTransform(Transform);
         }
     }
