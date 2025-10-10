@@ -442,8 +442,7 @@ void ACursorZoomOrbitCamera::ImGuiZmo(float DeltaTime) {
 
 
         ImGuizmo::BeginFrame();
-        FIntPoint viewportSize = GEngine->GameViewport->Viewport->GetSizeXY();
-        ImGuizmo::SetRect(0, 0, viewportSize.X, viewportSize.Y);
+        ImGuizmo::SetRect(0, 0, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
 
         std::array<float, 16> matrix;
         ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix.data());
